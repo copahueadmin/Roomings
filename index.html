@@ -13,6 +13,7 @@
     --gold-dark:#8a6f2f;
     --banner:#eee2c2;
     --pill:#f2e8cc;
+    --tag-bg:#ecd9a0;
     --ink:#2c2620;
     --muted:#7a6f5a;
     --danger:#b64a3d;
@@ -97,7 +98,13 @@
   .tag-chip{
     display:inline-flex;align-items:center;gap:5px;
     background:#f6f1e0;border:1px solid var(--line);border-radius:20px;
-    padding:4px 6px 4px 11px;font-size:12px;
+    padding:4px 6px 4px 8px;font-size:12px;
+    cursor:grab;
+  }
+  .tag-chip.dragging{opacity:.4;}
+  .tag-chip-dot{
+    width:9px;height:9px;border-radius:50%;flex:0 0 auto;
+    border:1px solid rgba(0,0,0,.15);
   }
   .tag-chip button{
     border:none;background:none;color:var(--danger);cursor:pointer;
@@ -145,7 +152,14 @@
   .checkbox-row{display:flex;align-items:center;gap:6px;font-size:13px;margin-top:2px;}
   .alt-hint{font-size:11.5px;color:var(--muted);}
   .alt-hint button{font-family:var(--font);border:none;background:none;color:var(--gold-dark);text-decoration:underline;cursor:pointer;font-size:11.5px;padding:0;}
-  .confirm-clear{display:none;gap:8px;align-items:center;}
+  .clear-wrap{position:relative;}
+  .confirm-clear{
+    display:none;gap:8px;align-items:center;flex-wrap:wrap;
+    position:absolute;top:100%;right:0;margin-top:8px;
+    background:#fff;border:1px solid var(--danger);border-radius:10px;
+    padding:10px 12px;box-shadow:0 4px 14px rgba(0,0,0,.12);
+    z-index:5;width:max-content;max-width:260px;
+  }
   .confirm-clear.show{display:flex;}
 
   .editor-box{
@@ -172,13 +186,18 @@
     padding:24px 28px 30px;
   }
   .sheet-header{
-    display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:4px;
+    display:flex;flex-direction:column;align-items:center;gap:4px;margin-bottom:4px;
+  }
+  .header-row{
+    display:flex;align-items:center;justify-content:center;gap:14px;
+    width:100%;max-width:100%;
   }
   .logo-circle{
     width:74px;height:74px;border-radius:10px;
     border:2px solid var(--gold);
     display:flex;align-items:center;justify-content:center;
     overflow:hidden;background:#fff;cursor:pointer;position:relative;
+    flex:0 0 auto;
   }
   .logo-circle img{width:100%;height:100%;object-fit:contain;}
   .logo-circle .plus{font-size:22px;color:var(--gold);font-family:var(--font);}
@@ -192,8 +211,10 @@
   }
   .logo-circle:not(.no-logo) .logo-remove-btn{display:flex;}
   .contingent-name{
-    font-size:28px;font-weight:800;letter-spacing:.01em;text-align:center;
-    outline:none;min-width:120px;padding:2px 6px;
+    font-size:28px;font-weight:800;letter-spacing:.01em;text-align:right;
+    outline:none;min-width:0;padding:2px 6px;
+    flex:0 1 auto;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
   .contingent-name:empty:before{content:attr(data-placeholder);color:#b2a988;font-weight:400;}
   .rooming-banner{
@@ -227,7 +248,49 @@
   #grid[data-cols="4"] .room-grid{ grid-template-columns:repeat(4,minmax(0,1fr)); }
   #grid[data-cols="5"] .room-grid{ grid-template-columns:repeat(5,minmax(0,1fr)); }
   #grid[data-cols="6"] .room-grid{ grid-template-columns:repeat(6,minmax(0,1fr)); }
-  .room-grid + .group-header{ margin-top:14px; }
+  .packed-row{
+    display:grid;
+    gap:10px;
+  }
+  #grid[data-cols="4"] .packed-row{ grid-template-columns:repeat(4,minmax(0,1fr)); }
+  #grid[data-cols="5"] .packed-row{ grid-template-columns:repeat(5,minmax(0,1fr)); }
+  #grid[data-cols="6"] .packed-row{ grid-template-columns:repeat(6,minmax(0,1fr)); }
+  .row-drop-zone{
+    height:8px;
+  }
+  .row-drop-zone:first-child{ height:0; }
+  #grid.dragging-active .row-drop-zone{
+    height:26px;
+    margin:2px 0;
+    border:2px dashed var(--gold);
+    border-radius:8px;
+    background:rgba(180,146,63,.10);
+    transition:background .1s,border-color .1s;
+  }
+  #grid.dragging-active .row-drop-zone.drag-hover{
+    background:rgba(180,146,63,.28);
+    border-color:var(--gold-dark);
+  }
+  @media print{
+    .row-drop-zone{ display:none !important; }
+  }
+  .tag-group{
+    background:var(--tag-bg);
+    border-radius:16px;
+    padding:9px 9px 10px;
+    min-width:0;
+  }
+  .group-drag-handle{
+    cursor:grab;color:var(--gold-dark);opacity:.55;font-size:13px;
+    padding:0 2px;
+  }
+  .group-drag-handle:active{cursor:grabbing;}
+  .row-break-btn{
+    border:none;background:rgba(255,255,255,.55);color:var(--gold-dark);
+    border-radius:6px;cursor:pointer;font-size:12px;line-height:1;
+    padding:3px 5px;
+  }
+  .row-break-btn:hover{background:rgba(255,255,255,.85);}
   .card{
     border:1px solid var(--line);
     border-radius:14px;
@@ -243,18 +306,21 @@
     min-height:132px;
   }
   .group-header{
+    display:flex;align-items:center;justify-content:center;gap:6px;
     font-weight:700;
-    font-size:12.5px;
-    letter-spacing:.08em;
+    font-size:17px;
+    letter-spacing:.06em;
     text-transform:uppercase;
+    text-align:center;
     color:var(--gold-dark);
-    border-bottom:2px solid var(--gold-dark);
-    padding:10px 2px 5px;
-    margin-top:2px;
+    padding:0;
+    margin:0 0 8px;
     break-after:avoid;
     break-inside:avoid;
   }
-  .group-header:first-child{margin-top:0;}
+  .group-header > span:nth-child(2){
+    overflow-wrap:break-word;min-width:0;
+  }
   .del-btn{
     position:absolute;top:2px;right:4px;border:none;background:none;
     color:var(--danger);font-size:13px;cursor:pointer;font-family:var(--font);
@@ -428,11 +494,13 @@
         <button type="button" class="cols-btn" data-cols="6">6</button>
       </div>
       <span style="flex:1;"></span>
-      <button type="button" class="ghost-btn" id="clearBtn" style="border-color:var(--danger);color:var(--danger);">Limpiar todo</button>
-      <div class="confirm-clear" id="confirmClear">
-        <span style="font-size:12.5px;color:var(--danger);">¿Borrar todo el rooming?</span>
-        <button type="button" class="mini-btn" id="confirmClearYes">Sí, borrar</button>
-        <button type="button" class="mini-btn" id="confirmClearNo">Cancelar</button>
+      <div class="clear-wrap">
+        <button type="button" class="ghost-btn" id="clearBtn" style="border-color:var(--danger);color:var(--danger);">Limpiar todo</button>
+        <div class="confirm-clear" id="confirmClear">
+          <span style="font-size:12.5px;color:var(--danger);">¿Borrar todo el rooming?</span>
+          <button type="button" class="mini-btn" id="confirmClearYes">Sí, borrar</button>
+          <button type="button" class="mini-btn" id="confirmClearNo">Cancelar</button>
+        </div>
       </div>
     </div>
     <div id="txtImportStatus" class="no-print" style="font-size:12px;color:var(--muted);margin-top:6px;min-height:16px;"></div>
@@ -440,14 +508,16 @@
 
   <div class="sheet" id="sheet">
     <div class="sheet-header">
-      <div class="logo-circle no-print-inner no-logo" id="logoCircle">
-        <span class="plus" id="logoPlus">+</span>
-        <img id="logoImg" style="display:none;">
-        <button type="button" class="logo-remove-btn no-print" id="logoRemoveBtn" title="Quitar logo" tabindex="-1">✕</button>
+      <div class="header-row">
+        <div class="contingent-name" id="contingentName" contenteditable="true" data-placeholder="Nombre del contingente"></div>
+        <div class="logo-circle no-print-inner no-logo" id="logoCircle">
+          <span class="plus" id="logoPlus">+</span>
+          <img id="logoImg" style="display:none;">
+          <button type="button" class="logo-remove-btn no-print" id="logoRemoveBtn" title="Quitar logo" tabindex="-1">✕</button>
+        </div>
+        <input type="file" id="logoInput" accept="image/*" style="display:none;">
       </div>
-      <input type="file" id="logoInput" accept="image/*" style="display:none;">
       <div class="logo-hint no-print">(click en el recuadro para cargar el logo del contingente — opcional)</div>
-      <div class="contingent-name" id="contingentName" contenteditable="true" data-placeholder="Nombre del contingente"></div>
     </div>
 
     <div class="rooming-banner">
@@ -542,10 +612,22 @@
   var ABBREVIATE_THRESHOLD = 20; // caracteres totales a partir de los cuales se abrevia el 2do apellido
 
   // ---------------------------------------------------------------
+  // Paleta de colores pastel para los flotantes de etiquetas.
+  // Elegidos con luminancia bien distinta entre sí para que se
+  // diferencien también al imprimir/fotocopiar en blanco y negro.
+  // ---------------------------------------------------------------
+  var TAG_COLORS = ['#f4ebc4', '#f2d7c4', '#c2deb4', '#9ad8d6', '#9ac1e1', '#db95ac', '#ad92d2', '#8797b2'];
+  function colorForTag(tagName){
+    var idx = state.tags.indexOf(tagName);
+    if (idx === -1) return null;
+    return TAG_COLORS[idx % TAG_COLORS.length];
+  }
+
+  // ---------------------------------------------------------------
   // Estado
   // guests: [{ apellido, nombre }]; rooms[r].tag agrupa la habitación
   // ---------------------------------------------------------------
-  var state = { rooms:{}, tags:[], contingentName:"", date:"", logo:"", columns:5 };
+  var state = { rooms:{}, tags:[], rowBreaks:{}, contingentName:"", date:"", logo:"", columns:5 };
   var editingRoom = null;
 
   // ---------------------------------------------------------------
@@ -603,6 +685,7 @@
 
   function removeTag(name){
     state.tags = state.tags.filter(function(t){ return t !== name; });
+    delete state.rowBreaks[name];
     Object.keys(state.rooms).forEach(function(r){
       if (state.rooms[r].tag === name){ state.rooms[r].tag = ''; }
     });
@@ -623,6 +706,12 @@
     state.tags.forEach(function(t){
       var chip = document.createElement('span');
       chip.className = 'tag-chip';
+      chip.draggable = true;
+      chip.title = 'Arrastrá para cambiar el orden';
+      var dot = document.createElement('span');
+      dot.className = 'tag-chip-dot';
+      dot.style.background = colorForTag(t) || '#ccc';
+      chip.appendChild(dot);
       chip.appendChild(document.createTextNode(t));
       var rm = document.createElement('button');
       rm.type = 'button';
@@ -631,6 +720,21 @@
       rm.title = 'Quitar etiqueta';
       rm.onclick = function(){ removeTag(t); };
       chip.appendChild(rm);
+      chip.addEventListener('dragstart', function(e){
+        e.dataTransfer.setData('text/tag-key', t);
+        e.dataTransfer.effectAllowed = 'move';
+        chip.classList.add('dragging');
+      });
+      chip.addEventListener('dragend', function(){ chip.classList.remove('dragging'); });
+      chip.addEventListener('dragover', function(e){
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+      });
+      chip.addEventListener('drop', function(e){
+        e.preventDefault();
+        var dragged = e.dataTransfer.getData('text/tag-key');
+        reorderTag(dragged, t, false);
+      });
       tagChipList.appendChild(chip);
     });
   }
@@ -686,10 +790,6 @@
     Object.keys(floors).sort().forEach(function(fk){
       var group = document.createElement('div');
       group.className = 'floor-group';
-      var label = document.createElement('div');
-      label.className = 'floor-label';
-      label.textContent = 'Planta ' + fk;
-      group.appendChild(label);
       var tiles = document.createElement('div');
       tiles.className = 'floor-tiles';
       floors[fk].forEach(function(r){
@@ -932,7 +1032,7 @@
   function computeGroups(){
     var addedRooms = Object.keys(state.rooms).map(Number).sort(function(a,b){return a-b;});
     if (state.tags.length === 0){
-      return [ { label:null, rooms: addedRooms } ];
+      return [ { label:null, tagKey:null, rooms: addedRooms } ];
     }
     var order = [''].concat(state.tags);
     var byTag = {};
@@ -943,18 +1043,36 @@
       byTag[t].push(r);
     });
     return order.map(function(t){
-      return { label: (t === '' ? 'Sin etiqueta' : t), rooms: byTag[t] };
+      return { label: (t === '' ? 'Sin etiqueta' : t), tagKey: t, rooms: byTag[t], color: (t === '' ? null : colorForTag(t)) };
     }).filter(function(g){ return g.rooms.length > 0; });
   }
 
-  function renderRoomCards(roomList, container){
+  // Agrupa una lista de habitaciones en "unidades" para el grid: una
+  // habitación suelta pesa 1 columna, un par comunicante pesa 2 (se
+  // muestran fusionadas en una sola tarjeta) sólo si ambas están en la lista.
+  function computeUnits(roomList){
     var done = {};
+    var units = [];
     roomList.forEach(function(r){
       if (done[r]) return;
       var partner = ROOM_DATA[r] && ROOM_DATA[r].connect;
-      var partnerInGroup = partner && state.rooms[partner] && roomList.indexOf(partner) !== -1;
-      if (partnerInGroup && !done[partner]){
+      var partnerInList = partner && state.rooms[partner] && roomList.indexOf(partner) !== -1;
+      if (partnerInList && !done[partner]){
         var pair = [r, partner].sort(function(a,b){return a-b;});
+        units.push({ width:2, rooms:pair, merged:true });
+        done[r] = true; done[partner] = true;
+      } else {
+        units.push({ width:1, rooms:[r], merged:false });
+        done[r] = true;
+      }
+    });
+    return units;
+  }
+
+  function renderUnits(units, container){
+    units.forEach(function(u){
+      if (u.merged){
+        var pair = u.rooms;
         var card = document.createElement('div');
         card.className = 'card card-merged';
         var mtag = document.createElement('div');
@@ -966,8 +1084,8 @@
         pair.forEach(function(pr){ inner.appendChild(buildSubcard(pr)); });
         card.appendChild(inner);
         container.appendChild(card);
-        done[r] = true; done[partner] = true;
       } else {
+        var r = u.rooms[0];
         var single = document.createElement('div');
         single.className = 'card';
         var del = document.createElement('button');
@@ -979,9 +1097,129 @@
         single.appendChild(del);
         single.appendChild(buildSubcard(r));
         container.appendChild(single);
-        done[r] = true;
       }
     });
+  }
+
+  // Mueve una etiqueta arrastrada justo antes/después de otra, y vuelve
+  // a dibujar el rooming siguiendo ese nuevo orden.
+  // Mueve una etiqueta arrastrada a la posición justo antes de refTagKey
+  // (o al final si refTagKey es null). Si forceBreak es true, la etiqueta
+  // arranca su propia fila nueva (aunque entraría junto a otra).
+  function moveTag(draggedKey, refTagKey, forceBreak){
+    if (!draggedKey) return;
+    var arr = state.tags;
+    var from = arr.indexOf(draggedKey);
+    if (from === -1) return;
+    arr.splice(from, 1);
+    var to;
+    if (refTagKey === ''){
+      to = 0; // el siguiente grupo es "Sin etiqueta" (no vive en state.tags): va al principio
+    } else if (refTagKey && refTagKey !== draggedKey){
+      to = arr.indexOf(refTagKey);
+      if (to === -1){ to = arr.length; }
+    } else {
+      to = arr.length; // sin referencia (o se soltó sobre sí misma): al final
+    }
+    arr.splice(to, 0, draggedKey);
+    if (forceBreak){ state.rowBreaks[draggedKey] = true; }
+    refreshTagChips();
+    refreshTagSelect();
+    render();
+  }
+  function reorderTag(draggedKey, targetKey){
+    moveTag(draggedKey, targetKey, false);
+  }
+
+  function toggleRowBreak(tagKey){
+    if (!tagKey) return;
+    state.rowBreaks[tagKey] = !state.rowBreaks[tagKey];
+    render();
+  }
+
+  function makeGroupDraggable(el, tagKey){
+    if (!tagKey) return;
+    el.draggable = true;
+    el.addEventListener('dragstart', function(e){
+      e.dataTransfer.setData('text/tag-key', tagKey);
+      e.dataTransfer.effectAllowed = 'move';
+      grid.classList.add('dragging-active');
+    });
+    el.addEventListener('dragend', function(){
+      grid.classList.remove('dragging-active');
+    });
+  }
+
+  function makeGroupDropTarget(el, tagKey){
+    if (!tagKey) return;
+    el.addEventListener('dragover', function(e){
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    });
+    el.addEventListener('drop', function(e){
+      e.preventDefault();
+      var dragged = e.dataTransfer.getData('text/tag-key');
+      reorderTag(dragged, tagKey);
+    });
+  }
+
+  // Franja "soltar acá" entre filas (y antes de la primera / después de
+  // la última) para poder mover una etiqueta a una fila nueva propia,
+  // aunque esa fila todavía no exista.
+  function buildRowDropZone(refTagKey){
+    var zone = document.createElement('div');
+    zone.className = 'row-drop-zone no-print';
+    zone.addEventListener('dragover', function(e){
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      zone.classList.add('drag-hover');
+    });
+    zone.addEventListener('dragleave', function(){
+      zone.classList.remove('drag-hover');
+    });
+    zone.addEventListener('drop', function(e){
+      e.preventDefault();
+      zone.classList.remove('drag-hover');
+      var dragged = e.dataTransfer.getData('text/tag-key');
+      moveTag(dragged, refTagKey, true);
+    });
+    return zone;
+  }
+
+  function buildIsland(g, span, innerCols){
+    var island = document.createElement('div');
+    island.className = 'tag-group';
+    if (g.color){ island.style.background = g.color; }
+    island.style.gridColumn = 'span ' + span;
+    if (g.label !== null){
+      var header = document.createElement('div');
+      header.className = 'group-header';
+      var handle = document.createElement('span');
+      handle.className = 'group-drag-handle no-print';
+      handle.textContent = '⠿';
+      handle.title = 'Arrastrar para reordenar';
+      var labelText = document.createElement('span');
+      labelText.textContent = g.label;
+      header.appendChild(handle);
+      header.appendChild(labelText);
+      if (g.tagKey){
+        var breakBtn = document.createElement('button');
+        breakBtn.type = 'button';
+        breakBtn.className = 'row-break-btn no-print';
+        breakBtn.title = state.rowBreaks[g.tagKey] ? 'Permitir compartir fila' : 'Forzar nueva fila';
+        breakBtn.textContent = state.rowBreaks[g.tagKey] ? '⏎' : '↵';
+        breakBtn.onclick = function(){ toggleRowBreak(g.tagKey); };
+        header.appendChild(breakBtn);
+        makeGroupDraggable(header, g.tagKey);
+        makeGroupDropTarget(island, g.tagKey);
+      }
+      island.appendChild(header);
+    }
+    var roomGrid = document.createElement('div');
+    roomGrid.className = 'room-grid';
+    roomGrid.style.gridTemplateColumns = 'repeat(' + innerCols + ', minmax(0,1fr))';
+    island.appendChild(roomGrid);
+    return { island: island, roomGrid: roomGrid };
   }
 
   function render(){
@@ -992,18 +1230,54 @@
       grid.appendChild(emptyMsg);
       return;
     }
+
+    // Sin etiquetas creadas: una única grilla simple, sin flotante.
+    if (state.tags.length === 0){
+      var roomGridSimple = document.createElement('div');
+      roomGridSimple.className = 'room-grid';
+      grid.appendChild(roomGridSimple);
+      renderUnits(computeUnits(groups[0].rooms), roomGridSimple);
+      return;
+    }
+
+    var colCount = state.columns || 5;
+
+    // Empaqueta los grupos en filas: los que entran juntos en el ancho
+    // disponible comparten fila; los que no (o tienen salto forzado)
+    // arrancan una fila nueva.
+    var packedRows = [];
+    var currentRow = null;
     groups.forEach(function(g){
-      if (g.label !== null){
-        var header = document.createElement('div');
-        header.className = 'group-header';
-        header.textContent = g.label;
-        grid.appendChild(header);
+      var units = computeUnits(g.rooms);
+      var totalWidth = units.reduce(function(s,u){ return s + u.width; }, 0);
+      var fitsForSharing = totalWidth <= colCount;
+      var forced = !!(g.tagKey && state.rowBreaks[g.tagKey]);
+      if (forced || !currentRow || !fitsForSharing || (currentRow.usedCols + totalWidth > colCount)){
+        currentRow = { items: [], usedCols: 0 };
+        packedRows.push(currentRow);
       }
-      var roomGrid = document.createElement('div');
-      roomGrid.className = 'room-grid';
-      grid.appendChild(roomGrid);
-      renderRoomCards(g.rooms, roomGrid);
+      var span = fitsForSharing ? totalWidth : colCount;
+      currentRow.items.push({ group: g, units: units, span: span, fitsForSharing: fitsForSharing });
+      currentRow.usedCols += span;
     });
+
+    packedRows.forEach(function(row){
+      // Franja para soltar una etiqueta arrastrada justo antes de esta fila
+      // (crea una fila nueva propia en ese punto).
+      grid.appendChild(buildRowDropZone(row.items[0].group.tagKey));
+
+      var packedRowEl = document.createElement('div');
+      packedRowEl.className = 'packed-row';
+      grid.appendChild(packedRowEl);
+      row.items.forEach(function(item){
+        var innerCols = item.fitsForSharing ? item.span : colCount;
+        var built = buildIsland(item.group, item.span, innerCols);
+        packedRowEl.appendChild(built.island);
+        renderUnits(item.units, built.roomGrid);
+      });
+    });
+    // Franja final: soltar después de la última fila.
+    grid.appendChild(buildRowDropZone(null));
   }
 
   // ---------------------------------------------------------------
@@ -1011,6 +1285,9 @@
   // ---------------------------------------------------------------
   contingentName.addEventListener('input', function(){
     state.contingentName = contingentName.textContent.trim();
+  });
+  contingentName.addEventListener('blur', function(){
+    contingentName.scrollLeft = 0;
   });
   sheetDate.addEventListener('input', function(){
     state.date = sheetDate.textContent.trim();
@@ -1218,6 +1495,7 @@
           if (!('tag' in state.rooms[r])){ state.rooms[r].tag = ''; }
         });
         state.tags = data.tags || [];
+        state.rowBreaks = data.rowBreaks || {};
         state.contingentName = data.contingentName || '';
         state.date = data.date || '';
         state.logo = data.logo || '';
@@ -1239,6 +1517,7 @@
 
   function applyStateToHeader(){
     contingentName.textContent = state.contingentName || '';
+    contingentName.scrollLeft = 0;
     sheetDate.textContent = state.date || '';
     if (state.logo){
       logoImg.src = state.logo;
@@ -1260,7 +1539,7 @@
     confirmClear.classList.remove('show');
   });
   document.getElementById('confirmClearYes').addEventListener('click', function(){
-    state = { rooms:{}, tags:[], contingentName:'', date:'', logo:'', columns:5 };
+    state = { rooms:{}, tags:[], rowBreaks:{}, contingentName:'', date:'', logo:'', columns:5 };
     applyStateToHeader();
     applyColumns();
     hideEditor();
