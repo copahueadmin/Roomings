@@ -260,17 +260,24 @@
   }
   .row-drop-zone:first-child{ height:0; }
   #grid.dragging-active .row-drop-zone{
-    height:26px;
+    height:32px;
     margin:2px 0;
     border:2px dashed var(--gold);
     border-radius:8px;
     background:rgba(180,146,63,.10);
     transition:background .1s,border-color .1s;
+    display:flex;align-items:center;justify-content:center;
+  }
+  #grid.dragging-active .row-drop-zone::after{
+    content:'+ nueva fila acá';
+    font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;
+    color:var(--gold-dark);opacity:.7;
   }
   #grid.dragging-active .row-drop-zone.drag-hover{
     background:rgba(180,146,63,.28);
     border-color:var(--gold-dark);
   }
+  #grid.dragging-active .row-drop-zone.drag-hover::after{ opacity:1; }
   @media print{
     .row-drop-zone{ display:none !important; }
   }
@@ -279,6 +286,72 @@
     border-radius:16px;
     padding:9px 9px 10px;
     min-width:0;
+    position:relative;
+  }
+  .tag-group[draggable="true"]{ cursor:grab; }
+  .tag-group[draggable="true"]:active{ cursor:grabbing; }
+  #grid.dragging-active .tag-group{
+    box-shadow:0 0 0 1px rgba(138,111,47,.25) inset;
+  }
+  .tag-group.drop-band-top,
+  .tag-group.drop-band-bottom,
+  .tag-group-wrap.drop-band-top,
+  .tag-group-wrap.drop-band-bottom{
+    box-shadow:0 0 0 2px var(--gold-dark) inset;
+    border-radius:16px;
+  }
+  .tag-group.drop-band-top::before,
+  .tag-group.drop-band-bottom::before,
+  .tag-group-wrap.drop-band-top::before,
+  .tag-group-wrap.drop-band-bottom::before{
+    content:'';
+    position:absolute;left:6px;right:6px;height:4px;
+    background:var(--gold-dark);border-radius:3px;
+    pointer-events:none;
+  }
+  .tag-group.drop-band-top::before,
+  .tag-group-wrap.drop-band-top::before{ top:2px; }
+  .tag-group.drop-band-bottom::before,
+  .tag-group-wrap.drop-band-bottom::before{ bottom:2px; }
+  .tag-group.drop-band-mid,
+  .tag-group-wrap.drop-band-mid{
+    box-shadow:0 0 0 2px var(--gold) inset;
+    border-radius:16px;
+  }
+  /* Flotante de una etiqueta que no entra en una sola fila: UN solo drag
+     target (tag-group-wrap) con varios segmentos apilados sin espacio
+     entre sí (mismo color, sin borde propio) para que se vea como una
+     única pieza en forma de "escalón", nunca como cajas separadas. */
+  .tag-group-wrap{
+    display:grid;
+    column-gap:10px;
+    row-gap:0;
+    min-width:0;
+    position:relative;
+    border-radius:16px;
+  }
+  .tag-group-wrap[draggable="true"]{ cursor:grab; }
+  .tag-group-wrap[draggable="true"]:active{ cursor:grabbing; }
+  #grid.dragging-active .tag-group-wrap{
+    box-shadow:0 0 0 1px rgba(138,111,47,.25) inset;
+  }
+  .tag-group-seg{
+    padding:0 9px;
+    border-radius:0;
+  }
+  .tag-group-seg.seg-first{
+    padding-top:9px;
+    border-radius:16px 16px 0 0;
+  }
+  .tag-group-seg:not(.seg-first){
+    padding-top:10px;
+  }
+  .tag-group-seg.seg-last{
+    padding-bottom:10px;
+    border-radius:0 0 16px 16px;
+  }
+  .tag-group-seg.seg-first.seg-last{
+    border-radius:16px;
   }
   .group-drag-handle{
     cursor:grab;color:var(--gold-dark);opacity:.55;font-size:13px;
@@ -1101,6 +1174,28 @@
     });
   }
 
+  // Divide las unidades de un grupo en "trozos" que entran en una fila
+  // (como máximo colCount columnas cada uno), para que una etiqueta con
+  // más habitaciones de las que caben en una fila no estire su flotante de
+  // punta a punta en las filas siguientes: cada trozo se dibuja angosto,
+  // ajustado solo a las habitaciones que contiene.
+  function chunkUnits(units, colCount){
+    var chunks = [];
+    var current = [];
+    var currentWidth = 0;
+    units.forEach(function(u){
+      if (current.length && currentWidth + u.width > colCount){
+        chunks.push(current);
+        current = [];
+        currentWidth = 0;
+      }
+      current.push(u);
+      currentWidth += u.width;
+    });
+    if (current.length){ chunks.push(current); }
+    return chunks;
+  }
+
   // Mueve una etiqueta arrastrada justo antes/después de otra, y vuelve
   // a dibujar el rooming siguiendo ese nuevo orden.
   // Mueve una etiqueta arrastrada a la posición justo antes de refTagKey
@@ -1150,16 +1245,35 @@
     });
   }
 
-  function makeGroupDropTarget(el, tagKey){
-    if (!tagKey) return;
+  // El flotante entero es zona de swelte: soltar en su franja superior o
+  // inferior mueve la etiqueta arrastrada a una fila nueva antes/después de
+  // la fila de este flotante; soltar en el medio la reordena junto a esta
+  // etiqueta (comportamiento anterior, sin forzar fila nueva).
+  function makeGroupDropTarget(el, tagKey, beforeRef, afterRef){
     el.addEventListener('dragover', function(e){
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
+      var rect = el.getBoundingClientRect();
+      var rel = rect.height ? (e.clientY - rect.top) / rect.height : 0.5;
+      el.classList.remove('drop-band-top','drop-band-mid','drop-band-bottom');
+      if (rel < 0.3){ el.classList.add('drop-band-top'); }
+      else if (rel > 0.7){ el.classList.add('drop-band-bottom'); }
+      else { el.classList.add('drop-band-mid'); }
+    });
+    el.addEventListener('dragleave', function(e){
+      if (!el.contains(e.relatedTarget)){
+        el.classList.remove('drop-band-top','drop-band-mid','drop-band-bottom');
+      }
     });
     el.addEventListener('drop', function(e){
       e.preventDefault();
+      var band = el.classList.contains('drop-band-top') ? 'top' : el.classList.contains('drop-band-bottom') ? 'bottom' : 'mid';
+      el.classList.remove('drop-band-top','drop-band-mid','drop-band-bottom');
       var dragged = e.dataTransfer.getData('text/tag-key');
-      reorderTag(dragged, tagKey);
+      if (!dragged) return;
+      if (band === 'top'){ moveTag(dragged, beforeRef, true); }
+      else if (band === 'bottom'){ moveTag(dragged, afterRef, true); }
+      else { reorderTag(dragged, tagKey); }
     });
   }
 
@@ -1186,40 +1300,100 @@
     return zone;
   }
 
-  function buildIsland(g, span, innerCols){
+  // Flotante normal: el grupo entra entero en una fila (una sola pieza,
+  // un solo rectángulo).
+  function buildIsland(g, span, beforeRef, afterRef){
     var island = document.createElement('div');
     island.className = 'tag-group';
     if (g.color){ island.style.background = g.color; }
     island.style.gridColumn = 'span ' + span;
-    if (g.label !== null){
-      var header = document.createElement('div');
-      header.className = 'group-header';
-      var handle = document.createElement('span');
-      handle.className = 'group-drag-handle no-print';
-      handle.textContent = '⠿';
-      handle.title = 'Arrastrar para reordenar';
-      var labelText = document.createElement('span');
-      labelText.textContent = g.label;
-      header.appendChild(handle);
-      header.appendChild(labelText);
-      if (g.tagKey){
-        var breakBtn = document.createElement('button');
-        breakBtn.type = 'button';
-        breakBtn.className = 'row-break-btn no-print';
-        breakBtn.title = state.rowBreaks[g.tagKey] ? 'Permitir compartir fila' : 'Forzar nueva fila';
-        breakBtn.textContent = state.rowBreaks[g.tagKey] ? '⏎' : '↵';
-        breakBtn.onclick = function(){ toggleRowBreak(g.tagKey); };
-        header.appendChild(breakBtn);
-        makeGroupDraggable(header, g.tagKey);
-        makeGroupDropTarget(island, g.tagKey);
-      }
-      island.appendChild(header);
+    var header = document.createElement('div');
+    header.className = 'group-header';
+    var handle = document.createElement('span');
+    handle.className = 'group-drag-handle no-print';
+    handle.textContent = '⠿';
+    handle.title = 'Arrastrar para mover esta etiqueta';
+    var labelText = document.createElement('span');
+    labelText.textContent = g.label;
+    header.appendChild(handle);
+    header.appendChild(labelText);
+    if (g.tagKey){
+      var breakBtn = document.createElement('button');
+      breakBtn.type = 'button';
+      breakBtn.className = 'row-break-btn no-print';
+      breakBtn.title = state.rowBreaks[g.tagKey] ? 'Permitir compartir fila' : 'Forzar nueva fila';
+      breakBtn.textContent = state.rowBreaks[g.tagKey] ? '⏎' : '↵';
+      breakBtn.onclick = function(){ toggleRowBreak(g.tagKey); };
+      header.appendChild(breakBtn);
     }
+    island.appendChild(header);
+    // Todo el flotante (no solo el encabezado) es punto de arrastre: es
+    // mucho más fácil de agarrar que el pequeño ícono "⠿".
+    if (g.tagKey){ makeGroupDraggable(island, g.tagKey); }
+    makeGroupDropTarget(island, g.tagKey, beforeRef, afterRef);
     var roomGrid = document.createElement('div');
     roomGrid.className = 'room-grid';
-    roomGrid.style.gridTemplateColumns = 'repeat(' + innerCols + ', minmax(0,1fr))';
+    roomGrid.style.gridTemplateColumns = 'repeat(' + span + ', minmax(0,1fr))';
     island.appendChild(roomGrid);
     return { island: island, roomGrid: roomGrid };
+  }
+
+  // Flotante de una etiqueta con más habitaciones de las que entran en una
+  // fila: sigue siendo UNA sola pieza continua (un solo drag, un solo
+  // borde), pero por dentro se arma con "segmentos" apilados sin espacio
+  // entre ellos — el primero ocupa el ancho completo, y el último (si
+  // sobran pocas habitaciones) es angosto, ajustado solo a esas
+  // habitaciones, dejando el resto de esa línea sin pintar. Como todos los
+  // segmentos comparten el mismo color y no tienen separación ni borde
+  // propio entre sí, se ve como un único flotante con un "escalón", nunca
+  // como dos cajas cortadas. El ancho de cada segmento se define con
+  // grid-column (fracciones de columna, igual que el resto del rooming),
+  // no con medidas en píxeles, así queda preciso también al imprimir.
+  function buildWrapIsland(g, units, colCount, beforeRef, afterRef){
+    var wrap = document.createElement('div');
+    wrap.className = 'tag-group-wrap';
+    wrap.style.gridColumn = 'span ' + colCount;
+    wrap.style.gridTemplateColumns = 'repeat(' + colCount + ', minmax(0,1fr))';
+    if (g.tagKey){ makeGroupDraggable(wrap, g.tagKey); }
+    makeGroupDropTarget(wrap, g.tagKey, beforeRef, afterRef);
+
+    var chunks = chunkUnits(units, colCount);
+    chunks.forEach(function(chunkUnits, idx){
+      var seg = document.createElement('div');
+      seg.className = 'tag-group tag-group-seg';
+      if (idx === 0){ seg.classList.add('seg-first'); }
+      if (idx === chunks.length - 1){ seg.classList.add('seg-last'); }
+      if (g.color){ seg.style.background = g.color; }
+      var width = chunkUnits.reduce(function(s,u){ return s + u.width; }, 0);
+      seg.style.gridColumn = 'span ' + width;
+
+      if (idx === 0){
+        var header = document.createElement('div');
+        header.className = 'group-header';
+        var handle = document.createElement('span');
+        handle.className = 'group-drag-handle no-print';
+        handle.textContent = '⠿';
+        handle.title = 'Arrastrar para mover esta etiqueta';
+        var labelText = document.createElement('span');
+        labelText.textContent = g.label;
+        header.appendChild(handle);
+        header.appendChild(labelText);
+        // No hay botón de "forzar nueva fila" acá: una etiqueta que no
+        // entra en una sola fila ya ocupa su propia fila completa siempre,
+        // así que ese control no tendría ningún efecto visible.
+        seg.appendChild(header);
+      }
+
+      var roomGrid = document.createElement('div');
+      roomGrid.className = 'room-grid';
+      roomGrid.style.gridTemplateColumns = 'repeat(' + width + ', minmax(0,1fr))';
+      seg.appendChild(roomGrid);
+      renderUnits(chunkUnits, roomGrid);
+
+      wrap.appendChild(seg);
+    });
+
+    return { wrap: wrap };
   }
 
   function render(){
@@ -1243,37 +1417,52 @@
     var colCount = state.columns || 5;
 
     // Empaqueta los grupos en filas: los que entran juntos en el ancho
-    // disponible comparten fila; los que no (o tienen salto forzado)
-    // arrancan una fila nueva.
+    // disponible comparten fila; los que no entran en una fila (o tienen
+    // salto forzado) arrancan una fila propia. Un grupo que no entra en
+    // una sola fila ocupa igual una fila completa para él solo (no
+    // comparte con otros), pero se dibuja como un único flotante "en
+    // escalón" que se angosta en su última línea (ver buildWrapIsland).
     var packedRows = [];
     var currentRow = null;
     groups.forEach(function(g){
       var units = computeUnits(g.rooms);
       var totalWidth = units.reduce(function(s,u){ return s + u.width; }, 0);
-      var fitsForSharing = totalWidth <= colCount;
+      var fitsInOneRow = totalWidth <= colCount;
       var forced = !!(g.tagKey && state.rowBreaks[g.tagKey]);
-      if (forced || !currentRow || !fitsForSharing || (currentRow.usedCols + totalWidth > colCount)){
+      if (forced || !currentRow || !fitsInOneRow || (currentRow.usedCols + totalWidth > colCount)){
         currentRow = { items: [], usedCols: 0 };
         packedRows.push(currentRow);
       }
-      var span = fitsForSharing ? totalWidth : colCount;
-      currentRow.items.push({ group: g, units: units, span: span, fitsForSharing: fitsForSharing });
+      var span = fitsInOneRow ? totalWidth : colCount;
+      currentRow.items.push({ group: g, units: units, span: span, fitsInOneRow: fitsInOneRow });
       currentRow.usedCols += span;
     });
 
-    packedRows.forEach(function(row){
+    packedRows.forEach(function(row, rowIndex){
+      // Referencias de esta fila: la etiqueta que empieza la fila (para
+      // "soltar antes") y la que empieza la fila siguiente (para "soltar
+      // después"), usadas tanto por la franja entre filas como por las
+      // franjas superior/inferior de cada flotante de esta fila.
+      var beforeRef = row.items[0].group.tagKey;
+      var nextRow = packedRows[rowIndex + 1];
+      var afterRef = nextRow ? nextRow.items[0].group.tagKey : null;
+
       // Franja para soltar una etiqueta arrastrada justo antes de esta fila
       // (crea una fila nueva propia en ese punto).
-      grid.appendChild(buildRowDropZone(row.items[0].group.tagKey));
+      grid.appendChild(buildRowDropZone(beforeRef));
 
       var packedRowEl = document.createElement('div');
       packedRowEl.className = 'packed-row';
       grid.appendChild(packedRowEl);
       row.items.forEach(function(item){
-        var innerCols = item.fitsForSharing ? item.span : colCount;
-        var built = buildIsland(item.group, item.span, innerCols);
-        packedRowEl.appendChild(built.island);
-        renderUnits(item.units, built.roomGrid);
+        if (item.fitsInOneRow){
+          var built = buildIsland(item.group, item.span, beforeRef, afterRef);
+          packedRowEl.appendChild(built.island);
+          renderUnits(item.units, built.roomGrid);
+        } else {
+          var builtWrap = buildWrapIsland(item.group, item.units, colCount, beforeRef, afterRef);
+          packedRowEl.appendChild(builtWrap.wrap);
+        }
       });
     });
     // Franja final: soltar después de la última fila.
@@ -1564,6 +1753,7 @@
     btn.addEventListener('click', function(){
       state.columns = Number(btn.dataset.cols);
       applyColumns();
+      render();
     });
   });
 
