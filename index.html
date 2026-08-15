@@ -110,6 +110,13 @@
     border:none;background:none;color:var(--danger);cursor:pointer;
     font-size:12px;padding:2px 4px;line-height:1;
   }
+  .tag-row-select{
+    font-family:var(--font);
+    border:1px solid var(--line);border-radius:8px;
+    background:#fff;color:var(--ink);
+    font-size:11px;padding:2px 4px;
+    cursor:pointer;max-width:120px;
+  }
   .tag-add-row{display:flex;gap:6px;}
   .tag-add-row input{flex:1;min-width:120px;}
   .tag-empty-hint{font-size:12px;color:var(--muted);margin-bottom:8px;}
@@ -140,6 +147,20 @@
   }
   .ghost-btn:hover{background:#fbf5e5;}
   .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;padding-top:14px;border-top:1px solid #eee6d4;align-items:center;}
+  /* Backup .json: uso interno, discreto (no son los botones principales
+     de descarga/carga, que ahora son en Excel) — texto chico y apagado,
+     sin caja ni borde, casi imperceptible salvo que se lo busque. */
+  .backup-row{
+    font-size:10.5px;color:#bcb29a;margin-top:4px;
+    display:flex;gap:6px;align-items:center;flex-wrap:wrap;
+  }
+  .backup-link{
+    font-family:var(--font);
+    background:none;border:none;padding:0;
+    font-size:10.5px;color:#bcb29a;text-decoration:underline;
+    text-decoration-style:dotted;cursor:pointer;
+  }
+  .backup-link:hover{color:var(--muted);}
   .cols-toggle{display:flex;align-items:center;gap:6px;}
   .cols-toggle-label{font-size:12px;color:var(--muted);}
   .cols-btn{
@@ -161,6 +182,32 @@
     z-index:5;width:max-content;max-width:260px;
   }
   .confirm-clear.show{display:flex;}
+
+  .history-section{
+    border-top:1px solid #eee6d4;
+    padding-top:14px;
+    margin-top:14px;
+  }
+  .history-header{
+    display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  }
+  .history-header label{
+    font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;
+    flex:1 1 auto;
+  }
+  .history-status{font-size:12px;color:var(--muted);margin:6px 0;min-height:16px;}
+  .history-status.error{color:var(--danger);}
+  .history-list{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;}
+  .history-empty{font-size:12.5px;color:var(--muted);font-style:italic;padding:4px 0;}
+  .history-item{
+    display:flex;align-items:center;gap:10px;
+    border:1px solid #eee6d4;border-radius:10px;
+    padding:7px 10px;background:#fcfbf6;
+  }
+  .history-item-info{flex:1 1 auto;min-width:0;}
+  .history-item-name{font-size:13px;font-weight:700;color:var(--ink);overflow-wrap:break-word;}
+  .history-item-meta{font-size:11.5px;color:var(--muted);}
+  .history-item-actions{display:flex;gap:6px;flex:0 0 auto;}
 
   .editor-box{
     border-top:1px solid #eee6d4;
@@ -186,11 +233,25 @@
     padding:24px 28px 30px;
   }
   .sheet-header{
-    display:flex;flex-direction:column;align-items:center;gap:4px;margin-bottom:4px;
+    display:flex;flex-direction:column;align-items:center;gap:4px;margin-bottom:14px;
   }
   .header-row{
-    display:flex;align-items:center;justify-content:center;gap:14px;
+    display:grid;
+    grid-template-columns:1fr auto 1fr;
+    align-items:center;
+    gap:14px;
     width:100%;max-width:100%;
+  }
+  /* "ROOMING" + fecha: pegado al borde izquierdo, centrado verticalmente
+     con el nombre/logo (misma fila, en vez de una franja aparte). */
+  .rooming-tag{
+    display:flex;flex-direction:column;
+    justify-self:start;
+    line-height:1.4;
+  }
+  .header-name-logo{
+    display:flex;align-items:center;justify-content:center;gap:14px;
+    min-width:0;
   }
   .logo-circle{
     width:74px;height:74px;border-radius:10px;
@@ -217,25 +278,18 @@
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
   }
   .contingent-name:empty:before{content:attr(data-placeholder);color:#b2a988;font-weight:400;}
-  .rooming-banner{
-    background:var(--banner);
-    border:1px solid var(--line);
-    border-radius:10px;
-    display:flex;align-items:center;justify-content:space-between;
-    gap:10px;
-    padding:7px 16px;
-    margin:12px 0 16px;
-  }
   .banner-title{
     font-weight:700;
     letter-spacing:.14em;
     font-size:11px;
+    color:var(--gold-dark);
   }
   .banner-date{
-    font-size:12.5px;
+    font-size:12px;
     font-weight:500;
     outline:none;
-    text-align:right;
+    text-align:left;
+    color:var(--muted);
     min-width:40px;
   }
   .banner-date:empty:before{content:attr(data-placeholder);color:#a8987a;}
@@ -278,13 +332,10 @@
     border-color:var(--gold-dark);
   }
   #grid.dragging-active .row-drop-zone.drag-hover::after{ opacity:1; }
-  @media print{
-    .row-drop-zone{ display:none !important; }
-  }
   .tag-group{
     background:var(--tag-bg);
     border-radius:16px;
-    padding:9px 9px 10px;
+    padding:9px 13px 10px;
     min-width:0;
     position:relative;
   }
@@ -329,6 +380,13 @@
     min-width:0;
     position:relative;
     border-radius:16px;
+    /* El padding horizontal va acá (una sola vez para todo el flotante),
+       no en cada segmento: así el ancho de columna se calcula igual que en
+       la fila de arriba y las habitaciones de la última línea no quedan
+       más angostas. Un poco más generoso que antes (13px) para que el
+       borde del flotante se note también en los costados extremos
+       (izquierda/derecha), no solo arriba/abajo y entre habitaciones. */
+    padding:0 13px;
   }
   .tag-group-wrap[draggable="true"]{ cursor:grab; }
   .tag-group-wrap[draggable="true"]:active{ cursor:grabbing; }
@@ -336,7 +394,7 @@
     box-shadow:0 0 0 1px rgba(138,111,47,.25) inset;
   }
   .tag-group-seg{
-    padding:0 9px;
+    padding:0;
     border-radius:0;
   }
   .tag-group-seg.seg-first{
@@ -353,6 +411,19 @@
   .tag-group-seg.seg-first.seg-last{
     border-radius:16px;
   }
+  /* La última línea, cuando le sobran pocas habitaciones, se estira medio
+     espacio (la mitad del gap de 10px) hacia la derecha para que el corte
+     quede a mitad de camino entre las 2 habitaciones que tiene arriba, en
+     vez de terminar justo pegado al borde de la habitación. Se estira solo
+     el fondo del segmento (margin negativo); adentro, la grilla de
+     habitaciones se achica lo mismo para que la habitación en sí mantenga
+     el ancho correcto (igual al de las de arriba), sin agrandarse. */
+  .tag-group-seg.seg-partial{
+    margin-right:-5px;
+  }
+  .tag-group-seg.seg-partial > .room-grid{
+    width:calc(100% - 5px);
+  }
   .group-drag-handle{
     cursor:grab;color:var(--gold-dark);opacity:.55;font-size:13px;
     padding:0 2px;
@@ -365,18 +436,18 @@
   }
   .row-break-btn:hover{background:rgba(255,255,255,.85);}
   .card{
-    border:1px solid var(--line);
+    border:2px solid var(--line);
     border-radius:14px;
     background:#fff;
     position:relative;
     display:flex;
     flex-direction:column;
-    min-height:132px;
+    min-height:112px;
     overflow:hidden;
   }
   .card-merged{
     grid-column:span 2;
-    min-height:132px;
+    min-height:112px;
   }
   .group-header{
     display:flex;align-items:center;justify-content:center;gap:6px;
@@ -403,14 +474,15 @@
     font-weight:700;
     text-align:center;
     font-size:15px;
-    padding:8px 6px 7px;
+    line-height:1.15;
+    padding:3px 6px;
     letter-spacing:.03em;
     flex:0 0 auto;
     background:var(--gold-dark);
     color:#fff;
     border-radius:13px 13px 0 0;
   }
-  .guests{padding:7px 10px 6px;display:flex;flex-direction:column;gap:5px;flex:1 1 auto;min-width:0;}
+  .guests{padding:6px 10px 3px;display:flex;flex-direction:column;gap:5px;flex:1 1 auto;min-width:0;}
   .guest-line{
     font-size:12.5px;
     text-align:left;
@@ -435,17 +507,16 @@
     border-top:1px solid var(--line-light);
     border-radius:0 0 13px 13px;
     font-size:11px;
-    text-align:left;
-    padding:6px 8px;
+    font-weight:700;
+    text-align:center;
+    padding:3px 8px;
     color:#5c4f30;
     display:flex;
     align-items:center;
-    justify-content:flex-start;
-    gap:4px;
+    justify-content:center;
     flex-wrap:wrap;
     flex:0 0 auto;
   }
-  .bedding-label{font-weight:700;opacity:.8;min-width:0;overflow-wrap:break-word;}
   .bedding-value{min-width:0;overflow-wrap:break-word;}
   .merged-tag{
     font-family:var(--font);
@@ -491,6 +562,18 @@
     .card{break-inside:avoid;overflow:visible;}
     .card-merged{break-inside:avoid;}
     .logo-circle.no-logo{display:none;}
+    .logo-circle{border:none;}
+    /* Sin esto, el motor de impresión puede cortar un flotante de etiqueta
+       justo por la mitad de una fila de habitaciones (o de la franja de
+       una fila del "escalón" de un flotante que ocupa varias filas), y las
+       dos mitades quedan pegadas a los bordes de la hoja sin su borde ni
+       padding normal, dando la sensación de que las etiquetas "se pegan"
+       entre sí. Evitamos el corte dentro de cada fila de habitaciones
+       (una franja del flotante, o un flotante de una sola fila); entre
+       filas de un mismo flotante grande sí puede cortar, ahí ya hay
+       espaciado propio (franja entre filas) que se ve bien en ambos lados. */
+    .tag-group{break-inside:avoid;}
+    .tag-group-seg{break-inside:avoid;}
   }
 </style>
 </head>
@@ -554,12 +637,9 @@
 
     <div class="toolbar">
       <button type="button" class="ghost-btn" id="printBtn">Imprimir / Exportar PDF</button>
-      <button type="button" class="ghost-btn" id="downloadTxtBtn">Descargar listado (.txt)</button>
-      <button type="button" class="ghost-btn" id="loadTxtBtn">Cargar listado (.txt)</button>
-      <input type="file" id="loadTxtInput" accept=".txt,text/plain" style="display:none;">
-      <button type="button" class="ghost-btn" id="saveJsonBtn">Guardar copia (.json)</button>
-      <button type="button" class="ghost-btn" id="loadJsonBtn">Cargar copia (.json)</button>
-      <input type="file" id="loadJsonInput" accept="application/json" style="display:none;">
+      <button type="button" class="ghost-btn" id="downloadXlsxBtn">Descargar listado (.xlsx)</button>
+      <button type="button" class="ghost-btn" id="loadXlsxBtn">Cargar listado (.xlsx)</button>
+      <input type="file" id="loadXlsxInput" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none;">
       <div class="cols-toggle" id="colsToggle">
         <span class="cols-toggle-label">Habitaciones por fila:</span>
         <button type="button" class="cols-btn" data-cols="4">4</button>
@@ -576,26 +656,44 @@
         </div>
       </div>
     </div>
-    <div id="txtImportStatus" class="no-print" style="font-size:12px;color:var(--muted);margin-top:6px;min-height:16px;"></div>
+    <div id="listingImportStatus" class="no-print" style="font-size:12px;color:var(--muted);margin-top:6px;min-height:16px;"></div>
+
+    <div class="backup-row no-print">
+      <button type="button" class="backup-link" id="saveJsonBtn">guardar copia (.json)</button>
+      <span>·</span>
+      <button type="button" class="backup-link" id="loadJsonBtn">cargar copia (.json)</button>
+      <input type="file" id="loadJsonInput" accept=".json,application/json" style="display:none;">
+    </div>
+
+    <div class="history-section no-print" id="historySection">
+      <div class="history-header">
+        <label>Historial de roomings (en línea)</label>
+        <button type="button" class="mini-btn" id="saveHistoryBtn">Guardar en historial</button>
+        <button type="button" class="mini-btn" id="refreshHistoryBtn" title="Actualizar lista">↻ Actualizar</button>
+      </div>
+      <div id="historyStatus" class="history-status"></div>
+      <div id="historyList" class="history-list"></div>
+    </div>
   </div>
 
   <div class="sheet" id="sheet">
     <div class="sheet-header">
       <div class="header-row">
-        <div class="contingent-name" id="contingentName" contenteditable="true" data-placeholder="Nombre del contingente"></div>
-        <div class="logo-circle no-print-inner no-logo" id="logoCircle">
-          <span class="plus" id="logoPlus">+</span>
-          <img id="logoImg" style="display:none;">
-          <button type="button" class="logo-remove-btn no-print" id="logoRemoveBtn" title="Quitar logo" tabindex="-1">✕</button>
+        <div class="rooming-tag">
+          <span class="banner-title">ROOMING</span>
+          <span class="banner-date" id="sheetDate" contenteditable="true" data-placeholder="dd / mes"></span>
         </div>
-        <input type="file" id="logoInput" accept="image/*" style="display:none;">
+        <div class="header-name-logo">
+          <div class="contingent-name" id="contingentName" contenteditable="true" data-placeholder="Nombre del contingente"></div>
+          <div class="logo-circle no-print-inner no-logo" id="logoCircle">
+            <span class="plus" id="logoPlus">+</span>
+            <img id="logoImg" style="display:none;">
+            <button type="button" class="logo-remove-btn no-print" id="logoRemoveBtn" title="Quitar logo" tabindex="-1">✕</button>
+          </div>
+          <input type="file" id="logoInput" accept="image/*" style="display:none;">
+        </div>
       </div>
       <div class="logo-hint no-print">(click en el recuadro para cargar el logo del contingente — opcional)</div>
-    </div>
-
-    <div class="rooming-banner">
-      <span class="banner-title">ROOMING</span>
-      <span class="banner-date" id="sheetDate" contenteditable="true" data-placeholder="dd / mes"></span>
     </div>
 
     <div class="grid" id="grid">
@@ -609,6 +707,10 @@
 
 </div>
 
+<!-- SheetJS (lectura/escritura de .xlsx en el navegador, sin backend).
+     Si falla la conexión, los botones de Excel avisan el error en vez de
+     romper el resto de la herramienta (ver chequeos de "typeof XLSX"). -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 (function(){
   "use strict";
@@ -776,6 +878,7 @@
       tagChipList.appendChild(hint);
       return;
     }
+    var sharing = computeRowSharing();
     state.tags.forEach(function(t){
       var chip = document.createElement('span');
       chip.className = 'tag-chip';
@@ -786,6 +889,43 @@
       dot.style.background = colorForTag(t) || '#ccc';
       chip.appendChild(dot);
       chip.appendChild(document.createTextNode(t));
+
+      // Selector de fila: en su propia fila, o compartiendo fila con otra
+      // etiqueta ya creada. Refleja (y permite editar) lo mismo que se
+      // puede hacer arrastrando los flotantes en el rooming.
+      var rowSelect = document.createElement('select');
+      rowSelect.className = 'tag-row-select no-print';
+      rowSelect.title = 'Elegí si esta etiqueta va en su propia fila o comparte fila con otra';
+      var ownOpt = document.createElement('option');
+      ownOpt.value = '';
+      ownOpt.textContent = 'Fila propia';
+      rowSelect.appendChild(ownOpt);
+      state.tags.forEach(function(other){
+        if (other === t) return;
+        var opt = document.createElement('option');
+        opt.value = other;
+        opt.textContent = 'Con: ' + other;
+        rowSelect.appendChild(opt);
+      });
+      var currentPartner = state.rowBreaks[t] ? '' : ((sharing[t] && sharing[t][0]) || '');
+      rowSelect.value = currentPartner;
+      // Que abrir/usar el selector no dispare el drag-and-drop del chip.
+      rowSelect.addEventListener('mousedown', function(e){ e.stopPropagation(); });
+      rowSelect.addEventListener('click', function(e){ e.stopPropagation(); });
+      rowSelect.addEventListener('change', function(){
+        var val = rowSelect.value;
+        if (val === ''){
+          state.rowBreaks[t] = true;
+          refreshTagChips();
+          refreshTagSelect();
+          render();
+        } else {
+          state.rowBreaks[t] = false;
+          moveTagAfter(t, val);
+        }
+      });
+      chip.appendChild(rowSelect);
+
       var rm = document.createElement('button');
       rm.type = 'button';
       rm.tabIndex = -1;
@@ -846,6 +986,7 @@
   tagSelect.addEventListener('change', function(){
     if (!editingRoom) return;
     state.rooms[editingRoom].tag = tagSelect.value;
+    refreshTagChips();
     render();
   });
 
@@ -892,6 +1033,7 @@
     editingRoom = r;
     loadEditorForRoom(r);
     refreshRoomPicker();
+    refreshTagChips();
     render();
   }
 
@@ -1018,6 +1160,7 @@
     delete state.rooms[editingRoom];
     hideEditor();
     refreshRoomPicker();
+    refreshTagChips();
     render();
   });
 
@@ -1025,6 +1168,7 @@
     delete state.rooms[r];
     if (editingRoom === r){ hideEditor(); }
     refreshRoomPicker();
+    refreshTagChips();
     render();
   }
 
@@ -1089,13 +1233,9 @@
 
     var pill = document.createElement('div');
     pill.className = 'bed-pill';
-    var lbl = document.createElement('span');
-    lbl.className = 'bedding-label';
-    lbl.textContent = 'Bedding:';
     var val = document.createElement('span');
     val.className = 'bedding-value';
     val.textContent = d.bed;
-    pill.appendChild(lbl);
     pill.appendChild(val);
     card.appendChild(pill);
 
@@ -1217,7 +1357,12 @@
       to = arr.length; // sin referencia (o se soltó sobre sí misma): al final
     }
     arr.splice(to, 0, draggedKey);
-    if (forceBreak){ state.rowBreaks[draggedKey] = true; }
+    // Siempre refleja la intención del movimiento actual: si no se pide
+    // forzar fila propia, hay que soltar cualquier "forzado" que haya
+    // quedado de un movimiento anterior (si no, arrastrar para compartir
+    // fila con otra etiqueta no tenía efecto cuando esa etiqueta ya había
+    // sido forzada a fila propia alguna vez).
+    state.rowBreaks[draggedKey] = !!forceBreak;
     refreshTagChips();
     refreshTagSelect();
     render();
@@ -1226,9 +1371,20 @@
     moveTag(draggedKey, targetKey, false);
   }
 
+  // Ubica tagToMove justo después de afterTagKey en state.tags (para el
+  // selector "comparte fila con" del panel de etiquetas), sin forzar fila.
+  function moveTagAfter(tagToMove, afterTagKey){
+    if (!tagToMove || tagToMove === afterTagKey) return;
+    var arr = state.tags.filter(function(t){ return t !== tagToMove; });
+    var idx = arr.indexOf(afterTagKey);
+    var nextTag = (idx !== -1 && idx + 1 < arr.length) ? arr[idx + 1] : null;
+    moveTag(tagToMove, nextTag, false);
+  }
+
   function toggleRowBreak(tagKey){
     if (!tagKey) return;
     state.rowBreaks[tagKey] = !state.rowBreaks[tagKey];
+    refreshTagChips();
     render();
   }
 
@@ -1282,7 +1438,10 @@
   // aunque esa fila todavía no exista.
   function buildRowDropZone(refTagKey){
     var zone = document.createElement('div');
-    zone.className = 'row-drop-zone no-print';
+    // Sin "no-print": en reposo es solo un espaciador invisible de 8px
+    // (sin borde ni fondo), así que debe seguir ocupando lugar también al
+    // imprimir/exportar — si no, las filas de etiquetas quedan pegadas.
+    zone.className = 'row-drop-zone';
     zone.addEventListener('dragover', function(e){
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
@@ -1362,10 +1521,23 @@
       var seg = document.createElement('div');
       seg.className = 'tag-group tag-group-seg';
       if (idx === 0){ seg.classList.add('seg-first'); }
-      if (idx === chunks.length - 1){ seg.classList.add('seg-last'); }
-      if (g.color){ seg.style.background = g.color; }
       var width = chunkUnits.reduce(function(s,u){ return s + u.width; }, 0);
-      seg.style.gridColumn = 'span ' + width;
+      var isLastChunk = (idx === chunks.length - 1);
+      if (isLastChunk){
+        seg.classList.add('seg-last');
+        if (width < colCount){ seg.classList.add('seg-partial'); }
+      }
+      if (g.color){ seg.style.background = g.color; }
+      // Un segmento que NO es el último de la etiqueta siempre ocupa el
+      // ancho completo de la fila (aunque sus propias habitaciones sumen
+      // menos columnas, p. ej. por un par comunicante que no entró en el
+      // hueco justo antes del corte): así el color de fondo sigue cubriendo
+      // toda la fila hasta el borde, y no queda un espacio sin pintar antes
+      // de que la misma etiqueta continúe en la fila siguiente. Solo el
+      // último segmento puede terminar angosto (ahí sí se nota que la
+      // etiqueta se terminó, no que le falta borde).
+      var segSpan = isLastChunk ? width : colCount;
+      seg.style.gridColumn = 'span ' + segSpan;
 
       if (idx === 0){
         var header = document.createElement('div');
@@ -1386,7 +1558,12 @@
 
       var roomGrid = document.createElement('div');
       roomGrid.className = 'room-grid';
-      roomGrid.style.gridTemplateColumns = 'repeat(' + width + ', minmax(0,1fr))';
+      // Misma cantidad de columnas que el segmento (segSpan): si el
+      // segmento ocupa la fila completa pero tiene menos habitaciones,
+      // las tarjetas quedan del tamaño correcto (igual al resto de filas)
+      // y las columnas sobrantes quedan vacías, mostrando el color de
+      // fondo del segmento en vez de un hueco en blanco.
+      roomGrid.style.gridTemplateColumns = 'repeat(' + segSpan + ', minmax(0,1fr))';
       seg.appendChild(roomGrid);
       renderUnits(chunkUnits, roomGrid);
 
@@ -1394,6 +1571,48 @@
     });
 
     return { wrap: wrap };
+  }
+
+  // Empaqueta los grupos en filas: los que entran juntos en el ancho
+  // disponible comparten fila; los que no entran en una fila (o tienen
+  // salto forzado) arrancan una fila propia. Un grupo que no entra en una
+  // sola fila ocupa igual una fila completa para él solo (no comparte con
+  // otros). Se usa tanto para dibujar el rooming como para saber, desde el
+  // panel de etiquetas, con quién comparte fila cada una ahora mismo.
+  function computePackedRows(groups, colCount){
+    var packedRows = [];
+    var currentRow = null;
+    groups.forEach(function(g){
+      var units = computeUnits(g.rooms);
+      var totalWidth = units.reduce(function(s,u){ return s + u.width; }, 0);
+      var fitsInOneRow = totalWidth <= colCount;
+      var forced = !!(g.tagKey && state.rowBreaks[g.tagKey]);
+      if (forced || !currentRow || !fitsInOneRow || (currentRow.usedCols + totalWidth > colCount)){
+        currentRow = { items: [], usedCols: 0 };
+        packedRows.push(currentRow);
+      }
+      var span = fitsInOneRow ? totalWidth : colCount;
+      currentRow.items.push({ group: g, units: units, span: span, fitsInOneRow: fitsInOneRow });
+      currentRow.usedCols += span;
+    });
+    return packedRows;
+  }
+
+  // Para el panel de etiquetas: con qué otras etiquetas comparte fila cada
+  // una ahora mismo (según el empaquetado automático actual).
+  function computeRowSharing(){
+    if (state.tags.length === 0){ return {}; }
+    var colCount = state.columns || 5;
+    var groups = computeGroups();
+    var sharing = {};
+    computePackedRows(groups, colCount).forEach(function(row){
+      var tagKeys = row.items.map(function(it){ return it.group.tagKey; });
+      tagKeys.forEach(function(tk){
+        if (!tk) return; // 'Sin etiqueta' no es una etiqueta real
+        sharing[tk] = tagKeys.filter(function(other){ return other && other !== tk; });
+      });
+    });
+    return sharing;
   }
 
   function render(){
@@ -1415,28 +1634,7 @@
     }
 
     var colCount = state.columns || 5;
-
-    // Empaqueta los grupos en filas: los que entran juntos en el ancho
-    // disponible comparten fila; los que no entran en una fila (o tienen
-    // salto forzado) arrancan una fila propia. Un grupo que no entra en
-    // una sola fila ocupa igual una fila completa para él solo (no
-    // comparte con otros), pero se dibuja como un único flotante "en
-    // escalón" que se angosta en su última línea (ver buildWrapIsland).
-    var packedRows = [];
-    var currentRow = null;
-    groups.forEach(function(g){
-      var units = computeUnits(g.rooms);
-      var totalWidth = units.reduce(function(s,u){ return s + u.width; }, 0);
-      var fitsInOneRow = totalWidth <= colCount;
-      var forced = !!(g.tagKey && state.rowBreaks[g.tagKey]);
-      if (forced || !currentRow || !fitsInOneRow || (currentRow.usedCols + totalWidth > colCount)){
-        currentRow = { items: [], usedCols: 0 };
-        packedRows.push(currentRow);
-      }
-      var span = fitsInOneRow ? totalWidth : colCount;
-      currentRow.items.push({ group: g, units: units, span: span, fitsInOneRow: fitsInOneRow });
-      currentRow.usedCols += span;
-    });
+    var packedRows = computePackedRows(groups, colCount);
 
     packedRows.forEach(function(row, rowIndex){
       // Referencias de esta fila: la etiqueta que empieza la fila (para
@@ -1504,160 +1702,148 @@
     };
     reader.readAsDataURL(file);
   });
-
   // ---------------------------------------------------------------
-  // Listado en texto plano (.txt): sirve como resumen legible y como
-  // plantilla para completar/cargar apellidos y nombres más rápido.
+  // Listado en Excel (.xlsx): una sola columna, simple. En cada fila que
+  // tenga un número de habitación válido arranca esa habitación; las filas
+  // siguientes (hasta la próxima habitación) son un huésped cada una. Una
+  // fila de huésped vacía cuenta igual (huésped todavía no identificado).
+  // Usa la librería SheetJS (window.XLSX, cargada por <script> más arriba).
   // ---------------------------------------------------------------
-  var txtImportStatus = document.getElementById('txtImportStatus');
+  var listingImportStatus = document.getElementById('listingImportStatus');
 
-  function buildTxtListing(){
-    var lines = [];
-    lines.push('ROOMING - HOTEL COPAHUE');
-    lines.push('Contingente: ' + (state.contingentName || ''));
-    lines.push('Fecha: ' + (state.date || ''));
-    lines.push('');
-    lines.push('Instrucciones para completar más rápido:');
-    lines.push('- Cada huésped va en su propia línea, con el formato: Apellido | Nombre');
-    lines.push('- Podés dejar habitaciones sin nombres para completarlas más tarde.');
-    lines.push('- La línea "Etiqueta:" es opcional (ej: Jugadores, Staff) y se crea sola si no existe.');
-    lines.push('- No borres ni modifiques las líneas "Habitación ###".');
-    lines.push('- Guardá este archivo como .txt y volvé a cargarlo con "Cargar listado (.txt)".');
-    lines.push('------------------------------------------------------------');
-
+  function buildRoomListingRows(){
+    var rows = [];
     var roomsToExport = Object.keys(state.rooms).map(Number).sort(function(a,b){return a-b;});
     if (roomsToExport.length === 0){
-      roomsToExport = ROOM_ORDER.slice();
+      // Sin nada cargado todavía: plantilla en blanco con todos los
+      // números de habitación del hotel, listos para completar debajo.
+      ROOM_ORDER.forEach(function(r){ rows.push([r]); });
+      return rows;
     }
     roomsToExport.forEach(function(r){
-      var d = state.rooms[r] || { guests:[blankGuest()], bed: ROOM_DATA[r].def, spa:false, tag:'' };
-      lines.push('');
-      lines.push('Habitación ' + r + ' (Bedding: ' + d.bed + ')');
-      lines.push('Etiqueta: ' + (d.tag || ''));
-      if (d.spa){
-        lines.push('(Sala de masajes — no requiere huéspedes)');
-      } else {
-        lines.push('Apellido | Nombre');
-        var guests = (d.guests && d.guests.length) ? d.guests : [blankGuest()];
-        guests.forEach(function(g){
-          var ng = normalizeGuest(g);
-          lines.push((ng.apellido || '') + ' | ' + (ng.nombre || ''));
+      var d = state.rooms[r];
+      rows.push([r]);
+      if (d && !d.spa){
+        var guests = (d.guests && d.guests.length) ? d.guests : [];
+        guests.forEach(function(guest){
+          var g = normalizeGuest(guest);
+          rows.push([(g.apellido + ' ' + g.nombre).trim()]);
         });
       }
     });
-    lines.push('');
-    lines.push('------------------------------------------------------------');
-    return lines.join('\n');
+    return rows;
   }
 
-  function parseTxtListing(text){
-    var lines = text.split(/\r?\n/);
+  // rows: array de arrays (una celda por fila, como lo entrega XLSX con
+  // {header:1}). Devuelve los huéspedes agrupados por habitación, más
+  // cuántas filas de huésped aparecieron antes de cualquier habitación
+  // (esas se ignoran, no hay dónde asignarlas).
+  function parseRoomListingRows(rows){
     var currentRoom = null;
     var roomGuests = {};
-    var roomBedGuess = {};
-    var roomTagGuess = {};
-    var parsedContingent = '';
-    var parsedDate = '';
-    lines.forEach(function(raw){
-      var line = raw.trim();
-      var mC = line.match(/^Contingente:\s*(.*)$/i);
-      if (mC){ parsedContingent = mC[1].trim(); return; }
-      var mF = line.match(/^Fecha:\s*(.*)$/i);
-      if (mF){ parsedDate = mF[1].trim(); return; }
-      var mR = line.match(/Habitaci[oó]n\s+(\d+)/i);
-      if (mR){
-        currentRoom = parseInt(mR[1], 10);
-        if (!roomGuests[currentRoom]) roomGuests[currentRoom] = [];
-        var mB = line.match(/Bedding:\s*([^)]+)\)/i);
-        if (mB){ roomBedGuess[currentRoom] = mB[1].trim(); }
+    var skippedBeforeRoom = 0;
+    rows.forEach(function(row){
+      var cell = (row && row.length) ? row[0] : '';
+      var text = (cell === undefined || cell === null) ? '' : String(cell).trim();
+      var asNumber = Number(text);
+      var looksLikeRoom = text !== '' && /^\d+$/.test(text) && ROOM_DATA.hasOwnProperty(asNumber);
+      if (looksLikeRoom){
+        currentRoom = asNumber;
+        if (!roomGuests[currentRoom]){ roomGuests[currentRoom] = []; }
         return;
       }
-      var mT = line.match(/^Etiqueta:\s*(.*)$/i);
-      if (mT && currentRoom){ roomTagGuess[currentRoom] = mT[1].trim(); return; }
-      if (!currentRoom || line.indexOf('|') === -1) return;
-      var parts = line.split('|').map(function(p){ return p.trim(); });
-      var apellido = parts[0] || '';
-      var nombre = parts[1] || '';
-      if (apellido.toLowerCase() === 'apellido') return; // fila de encabezado
-      if (!apellido && !nombre) return; // línea vacía, no cuenta como huésped real
-      roomGuests[currentRoom].push({ apellido: apellido, nombre: nombre });
+      if (currentRoom === null){
+        if (text !== ''){ skippedBeforeRoom++; }
+        return;
+      }
+      roomGuests[currentRoom].push(text === '' ? blankGuest() : { apellido: text, nombre: '' });
     });
-    return { roomGuests: roomGuests, roomBedGuess: roomBedGuess, roomTagGuess: roomTagGuess, contingentName: parsedContingent, date: parsedDate };
+    return { roomGuests: roomGuests, skippedBeforeRoom: skippedBeforeRoom };
   }
 
-  function applyTxtListing(parsed){
+  function applyRoomListing(parsed){
     var touched = 0;
     Object.keys(parsed.roomGuests).forEach(function(rStr){
       var r = Number(rStr);
-      if (!ROOM_DATA[r]) return; // número de habitación inválido, se ignora
+      if (!ROOM_DATA[r]) return;
       var guests = parsed.roomGuests[r];
       var alreadyAssigned = !!state.rooms[r];
-      var tagGuess = parsed.roomTagGuess[r];
-      // evita marcar de golpe habitaciones que vinieron en blanco desde una
-      // plantilla completa del hotel: solo se crean si tienen algún huésped cargado
+      // Una habitación mencionada sin ninguna fila de huésped debajo (como
+      // pasa con la plantilla en blanco) no cuenta como "cargada": evita
+      // que recargar la plantilla vacía marque todas las habitaciones como
+      // usadas.
       if (!alreadyAssigned && guests.length === 0) return;
       if (!alreadyAssigned){
-        state.rooms[r] = { guests: [], bed: parsed.roomBedGuess[r] || ROOM_DATA[r].def, spa:false, tag:'' };
+        state.rooms[r] = { guests: [], bed: ROOM_DATA[r].def, spa:false, tag:'' };
       }
       if (guests.length > 0){
         state.rooms[r].guests = guests;
       } else if (!state.rooms[r].guests || state.rooms[r].guests.length === 0){
         state.rooms[r].guests = [blankGuest()];
       }
-      if (tagGuess){
-        addTag(tagGuess);
-        state.rooms[r].tag = tagGuess;
-      }
       touched++;
     });
-    if (parsed.contingentName){ state.contingentName = parsed.contingentName; }
-    if (parsed.date){ state.date = parsed.date; }
-    applyStateToHeader();
     hideEditor();
     refreshRoomPicker();
     render();
     return touched;
   }
 
-  document.getElementById('downloadTxtBtn').addEventListener('click', function(){
-    var payload = buildTxtListing();
-    var blob = new Blob([payload], {type:'text/plain'});
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
+  document.getElementById('downloadXlsxBtn').addEventListener('click', function(){
+    if (typeof XLSX === 'undefined'){
+      listingImportStatus.textContent = 'No se pudo generar el Excel (falló la librería). Revisá tu conexión a internet e intentá de nuevo.';
+      return;
+    }
+    var rows = buildRoomListingRows();
+    var ws = XLSX.utils.aoa_to_sheet(rows);
+    ws['!cols'] = [{ wch: 28 }];
+    var wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Listado');
     var namePart = (state.contingentName || 'rooming').toLowerCase().replace(/[^a-z0-9]+/g,'-');
-    a.href = url;
-    a.download = 'rooming-copahue-' + namePart + '.txt';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    XLSX.writeFile(wb, 'rooming-copahue-' + namePart + '.xlsx');
   });
 
-  var loadTxtInput = document.getElementById('loadTxtInput');
-  document.getElementById('loadTxtBtn').addEventListener('click', function(){ loadTxtInput.click(); });
-  loadTxtInput.addEventListener('change', function(){
-    var file = loadTxtInput.files[0];
+  var loadXlsxInput = document.getElementById('loadXlsxInput');
+  document.getElementById('loadXlsxBtn').addEventListener('click', function(){ loadXlsxInput.click(); });
+  loadXlsxInput.addEventListener('change', function(){
+    var file = loadXlsxInput.files[0];
     if (!file) return;
+    if (typeof XLSX === 'undefined'){
+      listingImportStatus.textContent = 'No se pudo leer el Excel (falló la librería). Revisá tu conexión a internet e intentá de nuevo.';
+      loadXlsxInput.value = '';
+      return;
+    }
     var reader = new FileReader();
     reader.onload = function(e){
-      var parsed = parseTxtListing(e.target.result);
-      var touched = applyTxtListing(parsed);
-      txtImportStatus.textContent = touched > 0
-        ? ('Se cargaron datos de ' + touched + ' habitación' + (touched === 1 ? '' : 'es') + ' desde el archivo.')
-        : 'No se encontraron habitaciones con huéspedes cargados en el archivo.';
+      try{
+        var data = new Uint8Array(e.target.result);
+        var wb = XLSX.read(data, { type: 'array' });
+        var ws = wb.Sheets[wb.SheetNames[0]];
+        var rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: '' });
+        var parsed = parseRoomListingRows(rows);
+        var touched = applyRoomListing(parsed);
+        var msg = touched > 0
+          ? ('Se cargaron datos de ' + touched + ' ' + (touched === 1 ? 'habitación' : 'habitaciones') + ' desde el archivo.')
+          : 'No se encontraron habitaciones con huéspedes cargados en el archivo.';
+        if (parsed.skippedBeforeRoom > 0){
+          msg += ' (' + parsed.skippedBeforeRoom + ' fila' + (parsed.skippedBeforeRoom === 1 ? '' : 's') + ' se ignoraron por no tener ningún número de habitación arriba.)';
+        }
+        listingImportStatus.textContent = msg;
+      } catch(err){
+        listingImportStatus.textContent = 'El archivo no tiene un formato válido.';
+      }
     };
-    reader.readAsText(file);
-    loadTxtInput.value = '';
+    reader.readAsArrayBuffer(file);
+    loadXlsxInput.value = '';
   });
 
   // ---------------------------------------------------------------
-  // Toolbar: imprimir, guardar/cargar json, limpiar
+  // Copia de seguridad .json (uso interno, discreta): guarda/carga el
+  // estado completo tal cual (incluye logo), a diferencia del listado en
+  // Excel que solo maneja habitación + huéspedes.
   // ---------------------------------------------------------------
-  document.getElementById('printBtn').addEventListener('click', function(){ window.print(); });
-
   document.getElementById('saveJsonBtn').addEventListener('click', function(){
-    var payload = JSON.stringify(state, null, 2);
-    var blob = new Blob([payload], {type:'application/json'});
+    var blob = new Blob([JSON.stringify(state)], { type: 'application/json' });
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     var namePart = (state.contingentName || 'rooming').toLowerCase().replace(/[^a-z0-9]+/g,'-');
@@ -1665,7 +1851,7 @@
     a.download = 'rooming-copahue-' + namePart + '.json';
     document.body.appendChild(a);
     a.click();
-    a.remove();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   });
 
@@ -1678,31 +1864,181 @@
     reader.onload = function(e){
       try{
         var data = JSON.parse(e.target.result);
-        state.rooms = data.rooms || {};
-        Object.keys(state.rooms).forEach(function(r){
-          state.rooms[r].guests = (state.rooms[r].guests || []).map(normalizeGuest);
-          if (!('tag' in state.rooms[r])){ state.rooms[r].tag = ''; }
-        });
-        state.tags = data.tags || [];
-        state.rowBreaks = data.rowBreaks || {};
-        state.contingentName = data.contingentName || '';
-        state.date = data.date || '';
-        state.logo = data.logo || '';
-        state.columns = [4,5,6].indexOf(data.columns) !== -1 ? data.columns : 5;
-        applyStateToHeader();
-        applyColumns();
-        hideEditor();
-        refreshRoomPicker();
-        refreshTagChips();
-        refreshTagSelect();
-        render();
+        applyLoadedState(data);
+        listingImportStatus.textContent = 'Copia .json cargada correctamente.';
       } catch(err){
-        alert('El archivo no tiene un formato válido.');
+        listingImportStatus.textContent = 'El archivo .json no tiene un formato válido.';
       }
     };
     reader.readAsText(file);
     loadJsonInput.value = '';
   });
+
+  // ---------------------------------------------------------------
+  // Toolbar: imprimir
+  // ---------------------------------------------------------------
+  document.getElementById('printBtn').addEventListener('click', function(){ window.print(); });
+
+  // Aplica un objeto de estado cargado (desde una entrada del historial
+  // online) al estado en vivo, y refresca toda la UI.
+  function applyLoadedState(data){
+    state.rooms = data.rooms || {};
+    Object.keys(state.rooms).forEach(function(r){
+      state.rooms[r].guests = (state.rooms[r].guests || []).map(normalizeGuest);
+      if (!('tag' in state.rooms[r])){ state.rooms[r].tag = ''; }
+    });
+    state.tags = data.tags || [];
+    state.rowBreaks = data.rowBreaks || {};
+    state.contingentName = data.contingentName || '';
+    state.date = data.date || '';
+    state.logo = data.logo || '';
+    state.columns = [4,5,6].indexOf(data.columns) !== -1 ? data.columns : 5;
+    applyStateToHeader();
+    applyColumns();
+    hideEditor();
+    refreshRoomPicker();
+    refreshTagChips();
+    refreshTagSelect();
+    render();
+  }
+
+  // ---------------------------------------------------------------
+  // Historial de roomings (Firebase / Firestore, ver <script type="module">
+  // al final del archivo). window.__roomingHistory se llena de forma
+  // asíncrona; mientras tanto cualquier acción del historial avisa que
+  // todavía está conectando en vez de fallar en silencio.
+  // ---------------------------------------------------------------
+  var historyStatusEl = document.getElementById('historyStatus');
+  var historyListEl = document.getElementById('historyList');
+  var saveHistoryBtn = document.getElementById('saveHistoryBtn');
+  var refreshHistoryBtn = document.getElementById('refreshHistoryBtn');
+
+  function setHistoryStatus(msg, isError){
+    historyStatusEl.textContent = msg || '';
+    historyStatusEl.classList.toggle('error', !!isError);
+  }
+
+  function historyApiReady(){
+    return !!(window.__roomingHistory && window.__roomingHistory.ready);
+  }
+
+  function formatSavedAt(d){
+    if (!d) return '';
+    function pad(n){ return (n < 10 ? '0' : '') + n; }
+    return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+
+  function renderHistoryList(entries){
+    historyListEl.innerHTML = '';
+    if (!entries.length){
+      var empty = document.createElement('div');
+      empty.className = 'history-empty';
+      empty.textContent = 'Todavía no guardaste ningún rooming en el historial.';
+      historyListEl.appendChild(empty);
+      return;
+    }
+    entries.forEach(function(entry){
+      var item = document.createElement('div');
+      item.className = 'history-item';
+
+      var info = document.createElement('div');
+      info.className = 'history-item-info';
+      var name = document.createElement('div');
+      name.className = 'history-item-name';
+      name.textContent = entry.contingentName || '(sin nombre de contingente)';
+      var meta = document.createElement('div');
+      meta.className = 'history-item-meta';
+      var metaParts = [];
+      if (entry.date){ metaParts.push('Fecha del rooming: ' + entry.date); }
+      metaParts.push('Guardado: ' + (formatSavedAt(entry.savedAt) || '—'));
+      meta.textContent = metaParts.join(' · ');
+      info.appendChild(name);
+      info.appendChild(meta);
+
+      var actions = document.createElement('div');
+      actions.className = 'history-item-actions';
+      var openBtn = document.createElement('button');
+      openBtn.type = 'button';
+      openBtn.className = 'mini-btn';
+      openBtn.textContent = 'Abrir';
+      openBtn.onclick = function(){
+        if (!confirm('¿Reemplazar el rooming actual por este del historial? Los cambios sin guardar se van a perder.')) return;
+        applyLoadedState(entry.data);
+        setHistoryStatus('Se cargó "' + (entry.contingentName || 'este rooming') + '" desde el historial.');
+      };
+      var delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'mini-btn danger';
+      delBtn.textContent = 'Eliminar';
+      delBtn.onclick = function(){
+        if (!confirm('¿Eliminar este rooming guardado del historial? No se puede deshacer.')) return;
+        setHistoryStatus('Eliminando…');
+        window.__roomingHistory.remove(entry.id).then(function(){
+          refreshHistoryList();
+        }).catch(function(err){
+          setHistoryStatus('No se pudo eliminar: ' + (err && err.message ? err.message : err), true);
+        });
+      };
+      actions.appendChild(openBtn);
+      actions.appendChild(delBtn);
+
+      item.appendChild(info);
+      item.appendChild(actions);
+      historyListEl.appendChild(item);
+    });
+  }
+
+  function refreshHistoryList(){
+    if (!historyApiReady()){
+      setHistoryStatus('Conectando con el historial…');
+      return;
+    }
+    setHistoryStatus('Cargando historial…');
+    window.__roomingHistory.list().then(function(entries){
+      setHistoryStatus('');
+      renderHistoryList(entries);
+    }).catch(function(err){
+      setHistoryStatus('No se pudo cargar el historial: ' + (err && err.message ? err.message : err), true);
+    });
+  }
+
+  saveHistoryBtn.addEventListener('click', function(){
+    if (!historyApiReady()){
+      setHistoryStatus('Conectando con el historial, probá de nuevo en un segundo.', true);
+      return;
+    }
+    // Clon plano del estado actual; el logo no se guarda en el historial
+    // (puede ser pesado y no es necesario para reabrir un rooming viejo).
+    var snapshot = JSON.parse(JSON.stringify(state));
+    delete snapshot.logo;
+    setHistoryStatus('Guardando…');
+    window.__roomingHistory.save(snapshot).then(function(){
+      setHistoryStatus('Rooming guardado en el historial ✓');
+      refreshHistoryList();
+    }).catch(function(err){
+      setHistoryStatus('No se pudo guardar: ' + (err && err.message ? err.message : err), true);
+    });
+  });
+
+  refreshHistoryBtn.addEventListener('click', refreshHistoryList);
+
+  window.addEventListener('rooming-history-ready', refreshHistoryList);
+  window.addEventListener('rooming-history-error', function(e){
+    setHistoryStatus('No se pudo conectar con el historial (revisá la conexión o la configuración de Firebase).', true);
+  });
+  // Por si el módulo de Firebase ya estaba listo antes de que se registraran
+  // estos listeners (poco probable, pero no cuesta nada cubrirlo).
+  if (historyApiReady()){ refreshHistoryList(); }
+  else { setHistoryStatus('Conectando con el historial…'); }
+  // Si el script del historial ni siquiera pudo cargarse (por ejemplo, sin
+  // conexión a internet, o el CDN de Firebase bloqueado), ni 'rooming-
+  // history-ready' ni 'rooming-history-error' llegan a dispararse nunca.
+  // Este timeout evita que el mensaje quede en "Conectando…" para siempre.
+  setTimeout(function(){
+    if (!historyApiReady()){
+      setHistoryStatus('No se pudo conectar con el historial (revisá tu conexión a internet).', true);
+    }
+  }, 8000);
 
   function applyStateToHeader(){
     contingentName.textContent = state.contingentName || '';
@@ -1753,6 +2089,7 @@
     btn.addEventListener('click', function(){
       state.columns = Number(btn.dataset.cols);
       applyColumns();
+      refreshTagChips();
       render();
     });
   });
@@ -1768,6 +2105,95 @@
   render();
 
 })();
+</script>
+
+<!--
+  Historial de roomings — Firebase / Firestore.
+  Este bloque es independiente del script principal (que no es un módulo):
+  expone window.__roomingHistory con save/list/remove, y avisa cuando está
+  listo (o si falló) disparando eventos en window que el script principal
+  escucha ('rooming-history-ready' / 'rooming-history-error'). Así el resto
+  de la app funciona igual (offline, como siempre) aunque Firebase tarde en
+  cargar, esté bloqueado, o las reglas de Firestore todavía no estén puestas.
+
+  Colección usada: "roomings_history". Reglas de Firestore necesarias
+  (Firestore → Reglas, en la consola de Firebase):
+
+    rules_version = '2';
+    service cloud.firestore {
+      match /databases/{database}/documents {
+        match /roomings_history/{docId} {
+          allow read, write: if true;
+        }
+      }
+    }
+
+  (Elegido sin login: cualquiera con la URL de la página, o con estos
+  mismos datos de configuración, puede leer/escribir el historial. Si más
+  adelante se quiere sumar protección, esto es lo primero a cambiar.)
+-->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-app.js";
+  import {
+    getFirestore, collection, addDoc, getDocs, deleteDoc, doc,
+    query, orderBy, limit, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore.js";
+
+  var firebaseConfig = {
+    apiKey: "AIzaSyBp93E59gQyG7K3h0gjYKaBs-_EpYlRAKk",
+    authDomain: "roomings-hotelcopahue.firebaseapp.com",
+    projectId: "roomings-hotelcopahue",
+    storageBucket: "roomings-hotelcopahue.firebasestorage.app",
+    messagingSenderId: "216117543296",
+    appId: "1:216117543296:web:653e4c0de9013e77920165"
+  };
+
+  var HISTORY_COLLECTION = 'roomings_history';
+
+  try {
+    var app = initializeApp(firebaseConfig);
+    var db = getFirestore(app);
+
+    var saveRoomingToHistory = function(stateSnapshot){
+      var payload = Object.assign({}, stateSnapshot, { savedAt: serverTimestamp() });
+      return addDoc(collection(db, HISTORY_COLLECTION), payload).then(function(ref){
+        return ref.id;
+      });
+    };
+
+    var listHistory = function(){
+      var q = query(collection(db, HISTORY_COLLECTION), orderBy('savedAt', 'desc'), limit(200));
+      return getDocs(q).then(function(snap){
+        var out = [];
+        snap.forEach(function(d){
+          var data = d.data();
+          out.push({
+            id: d.id,
+            contingentName: data.contingentName || '',
+            date: data.date || '',
+            savedAt: data.savedAt && data.savedAt.toDate ? data.savedAt.toDate() : null,
+            data: data
+          });
+        });
+        return out;
+      });
+    };
+
+    var deleteHistoryEntry = function(id){
+      return deleteDoc(doc(db, HISTORY_COLLECTION, id));
+    };
+
+    window.__roomingHistory = {
+      save: saveRoomingToHistory,
+      list: listHistory,
+      remove: deleteHistoryEntry,
+      ready: true
+    };
+    window.dispatchEvent(new Event('rooming-history-ready'));
+  } catch (err){
+    console.error('No se pudo inicializar el historial (Firebase):', err);
+    window.dispatchEvent(new Event('rooming-history-error'));
+  }
 </script>
 </body>
 </html>
